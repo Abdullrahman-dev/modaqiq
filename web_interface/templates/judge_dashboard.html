@@ -1,0 +1,156 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بوابة القاضي | Modqiq</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .dashboard-container {
+            padding: 2rem 5%;
+        }
+        
+        .dashboard-header-page {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .refresh-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid var(--glass-border);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .refresh-btn:hover { background: rgba(255,255,255,0.2); }
+
+        .cases-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .case-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .case-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .case-status {
+            position: absolute;
+            top: 1rem; left: 1rem;
+            padding: 0.25rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .status-VALIDATED { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #34d399; }
+        .status-REJECTED { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #f87171; }
+        .status-DRAFT { background: rgba(251, 191, 36, 0.2); color: #fbbf24; border: 1px solid #fbbf24; }
+
+        .case-title { font-size: 1.2rem; margin-bottom: 0.5rem; color: var(--gold); }
+        .case-meta { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem; }
+        
+        .decision-box {
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            border-right: 3px solid var(--primary);
+        }
+        
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 4rem;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="background-mesh"></div>
+
+    <!-- Navigation -->
+    <nav class="glass-nav">
+        <div class="logo">
+            <i class="fa-solid fa-scale-balanced"></i>
+            <span>Modqiq | بوابة القاضي</span>
+        </div>
+        <div class="nav-links">
+            <a href="{% url 'index' %}">الرئيسية</a>
+            <a href="{% url 'about' %}">عن النظام</a>
+            <a href="#" class="active">لوحة التحكم</a>
+        </div>
+    </nav>
+
+    <main class="dashboard-container">
+        <div class="dashboard-header-page">
+            <h1>القضايا الواردة للتدقيق</h1>
+            <button class="refresh-btn" onclick="location.reload()">
+                <i class="fa-solid fa-sync"></i> تحديث القائمة
+            </button>
+        </div>
+
+        <div class="cases-grid">
+            {% for case in cases %}
+            <div class="case-card">
+                <span class="case-status status-{{ case.status }}">
+                    {% if case.status == 'VALIDATED' %}
+                        {% if case.validation_result.is_accepted %}مقبولة شكلاً{% else %}مرفوضة شكلاً{% endif %}
+                    {% else %}
+                        {{ case.get_status_display }}
+                    {% endif %}
+                </span>
+                
+                <h3 class="case-title">{{ case.title }}</h3>
+                <div class="case-meta">
+                    <i class="fa-regular fa-calendar"></i> {{ case.submission_date|date:"Y-m-d" }}
+                    <span style="margin: 0 10px;">|</span>
+                    <i class="fa-solid fa-user"></i> المدعي: {{ case.plaintiff.name }}
+                </div>
+
+                <p style="color: #cbd5e1; font-size: 0.9rem; margin-bottom: 1rem;">
+                    {{ case.description|truncatewords:15 }}
+                </p>
+
+                {% if case.validation_result %}
+                    <div class="decision-box">
+                        <strong style="display:block; margin-bottom:5px; color:var(--text-main);">🤖 التسبيب الآلي:</strong>
+                        {{ case.validation_result.generated_reasoning|default:"لا يوجد تسبيب متاح." }}
+                    </div>
+                {% else %}
+                    <div class="decision-box" style="border-color: var(--text-muted);">
+                        <em>بانتظار التحليل...</em>
+                    </div>
+                {% endif %}
+            </div>
+            {% empty %}
+                <div class="empty-state">
+                    <i class="fa-solid fa-folder-open" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                    <h3>لا يوجد قضايا مرفوعة حتى الآن</h3>
+                    <p>استخدم نموذج التقديم لإضافة قضايا جديدة.</p>
+                </div>
+            {% endfor %}
+        </div>
+    </main>
+</body>
+</html>
